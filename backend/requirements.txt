@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+openai
+transformers
+torch
+diffusers
+pillow
+chromadb
+pytest
+httpx
