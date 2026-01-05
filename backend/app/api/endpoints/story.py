@@ -4,8 +4,8 @@ from app.core.memory import memory_manager
 from app.core.sentiment import analyze_emotion
 from app.core.image_prompts import generate_sd_prompt
 from app.core.image_generation import generate_image_from_prompt
-from app.core.validator import check_consistency
-from app.core.llm import generate_text, client # passing client for image prompt helper if needed
+from app.core.coherence import check_consistency
+from app.core.llm import generate_text
 from app.core.prompts import NARRATIVE_WRITING_PROMPT # Simplified usage for now, or just generic generation
 
 router = APIRouter()
@@ -18,29 +18,32 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
     """
     
     # 1. Retrieve Context
-    # We are keeping it simple: just fetching relevant events based on the prompt.
-    past_context = memory_manager.get_relevant_context(request.prompt, n_results=request.context_window_size)
-    # Ideally we'd also get active characters from the prompt, but that requires NER. 
-    # For now, we'll fetch all profile summaries or just rely on the vector retrieval.
-    # Let's append profile summary to context for robustness.
-    profile_summary = memory_manager.get_all_profiles_summary()
-    full_search_context = f"{profile_summary}\n{past_context}"
-    
-    # 2. Generate Text
-    # We'll treat the user prompt as the scene beat or continuation instruction
-    # Using a generic prompt structure for the endpoint simplicity
-    generation_prompt = f"""
-    Context:
-    {full_search_context}
-    
-    Write the next scene based on: {request.prompt}
-    """
-    narrative_text = await generate_text(generation_prompt)
-    
-    if not narrative_text:
-        raise HTTPException(status_code=500, detail="Text generation failed.")
+    try:
+        # We are keeping it simple: just fetching relevant events based on the prompt.
+        past_context = memory_manager.get_relevant_context(request.prompt, n_results=request.context_window_size)
+        # Ideally we'd also get active characters from the prompt, but that requires NER. 
+        # For now, we'll fetch all profile summaries or just rely on the vector retrieval.
+        # Let's append profile summary to context for robustness.
+        profile_summary = memory_manager.get_all_profiles_summary()
+        full_search_context = f"{profile_summary}\n{past_context}"
+        
+        # 2. Generate Text
+        # We'll treat the user prompt as the scene beat or continuation instruction
+        # Using a generic prompt structure for the endpoint simplicity
+        generation_prompt = f"""
+        Context:
+        {full_search_context}
+        
+        Write the next scene based on: {request.prompt}
+        """
+        narrative_text = await generate_text(generation_prompt)
+        
+        if not narrative_text:
+            raise HTTPException(status_code=500, detail="Text generation failed. Ensure your OPENAI_API_KEY is set correctly.")
 
-    # 3. Validate (Async/Parallelizable, but we want to return it in response)
+    except Exception as e:
+        print(f"Error in story generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     validation_json = await check_consistency(narrative_text, full_search_context)
     validation_result = ValidationResult(**validation_json)
 
@@ -56,7 +59,7 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
     # 6. Generate Image
     # We do this last as it's the slowest. 
     # First generate the prompt
-    sd_prompt = await generate_sd_prompt(client, narrative_text)
+    sd_prompt = await generate_sd_prompt(narrative_text)
     image_b64 = await generate_image_from_prompt(sd_prompt)
 
     return StoryResponse(
