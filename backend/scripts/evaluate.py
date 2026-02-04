@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.sentiment import validate_arc
-from app.core.validator import check_consistency
+from app.core.coherence import check_consistency
 from app.core.memory import memory_manager
 
 async def run_evaluation():

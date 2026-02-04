@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 pydantic
+pydantic-settings
 python-dotenv
 openai
 transformers
@@ -10,3 +11,4 @@ pillow
 chromadb
 pytest
 httpx
+google-generativeai
