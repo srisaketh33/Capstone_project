@@ -21,7 +21,21 @@ async def check_consistency(chapter_text: str, context_summary: str) -> dict:
         elif "```" in content:
             content = content.replace("```", "")
             
-        return json.loads(content)
+        result = json.loads(content)
+        
+        # Ensure all required keys exist to prevent Pydantic validation errors
+        defaults = {
+            "plot_holes": [],
+            "character_inconsistencies": [],
+            "logic_errors": [],
+            "suggestions": []
+        }
+        
+        for key, value in defaults.items():
+            if key not in result:
+                result[key] = value
+                
+        return result
     except Exception as e:
         print(f"Error validating consistency: {e}")
         return {

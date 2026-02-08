@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import MoodBoard from './MoodBoard';
 
 interface RightSidebarProps {
-    images: string[];
+    images: { b64: string, text: string }[];
     sentiment: { [key: string]: number };
 }
 
@@ -45,10 +45,10 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ images, sentiment }) => {
 
                             <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
                                 <h4 className="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-2">
-                                    <span>✨</span> Getting Started
+                                    <span>✨</span> Insights
                                 </h4>
                                 <p className="text-xs text-indigo-800 leading-relaxed">
-                                    Welcome to Story Forge! Enter a story idea in the <b>AI Toolkit</b> on the left and click <b>Generate Narrative</b> to start.
+                                    Your story's tone and structure are being monitored. Individual tool data will manifest as you generate more content.
                                 </p>
                             </div>
                         </div>
@@ -59,13 +59,7 @@ const RightSidebar: React.FC<RightSidebarProps> = ({ images, sentiment }) => {
                             <h3 className="text-lg font-serif font-bold text-gray-900">Mood Board</h3>
                             <p className="text-sm text-gray-500">Assemble visuals for your story.</p>
                         </div>
-                        <MoodBoard images={images} sentiment={sentiment} />
-
-                        {/* Placeholder for future uploads */}
-                        <div className="h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                            <span className="text-2xl mb-1">+</span>
-                            <span className="text-xs font-medium">Upload Images (coming soon)</span>
-                        </div>
+                        <MoodBoard images={images} />
                     </div>
                 )}
             </div>

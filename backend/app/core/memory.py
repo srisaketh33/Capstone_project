@@ -63,7 +63,9 @@ class MemoryManager:
         context_str = ""
         if results['documents']:
              for i, doc in enumerate(results['documents'][0]):
-                 context_str += f"- {doc}\n"
+                 # Truncate each document if it's too long to prevent prompt clogging
+                 truncated_doc = doc[:1000] + "..." if len(doc) > 1000 else doc
+                 context_str += f"- {truncated_doc}\n"
                  
         return context_str
 
@@ -80,11 +82,22 @@ class MemoryManager:
     def get_profile(self, character_name: str) -> dict:
         return self.profiles.get(character_name, {})
 
-    def get_all_profiles_summary(self) -> str:
+    def get_all_profiles_summary(self, filter_text: str = None) -> str:
+        """
+        Returns a summary of character profiles. 
+        If filter_text is provided, only returns profiles whose names or descriptions match the text.
+        """
         summary = "Character Profiles:\n"
+        found = False
         for name, data in self.profiles.items():
+            # If search text is provided, only include if name is mentioned
+            if filter_text and name.lower() not in filter_text.lower():
+                continue
+            
             summary += f"- {name}: {data}\n"
-        return summary
+            found = True
+        
+        return summary if found else ""
 
     def assemble_prompt_context(self, current_scene_query: str, active_characters: list[str]) -> str:
         """
