@@ -1,12 +1,11 @@
 import React from 'react';
-import { Bot, BookOpen, Users, Image as ImageIcon } from 'lucide-react';
+import { Bot, BookOpen, Users, Image as ImageIcon, ArrowRight, Sparkles } from 'lucide-react';
 
 interface LandingPageProps {
-    onLogin: () => void;
     onGetStarted: () => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onGetStarted }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
     return (
         <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans">
             {/* Navigation */}
@@ -19,16 +18,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onGetStarted }) => {
                 </div>
                 <div className="flex items-center gap-6">
                     <button
-                        onClick={onLogin}
-                        className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-                    >
-                        Login
-                    </button>
-                    <button
                         onClick={onGetStarted}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-bold shadow-sm transition-all"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-bold shadow-sm transition-all flex items-center gap-2"
                     >
-                        Get Started
+                        Get Started <ArrowRight className="w-4 h-4" />
                     </button>
                 </div>
             </nav>
@@ -54,15 +47,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onGetStarted }) => {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <button
                         onClick={onGetStarted}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-md font-bold text-md shadow-lg shadow-blue-100 transition-all w-full sm:w-auto"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-100 transition-all w-full sm:w-auto active:scale-95 flex items-center justify-center gap-3"
                     >
-                        Get Started For Free
-                    </button>
-                    <button
-                        onClick={onLogin}
-                        className="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-8 py-3.5 rounded-md font-bold text-md transition-all w-full sm:w-auto"
-                    >
-                        Explore the Forge
+                        <Sparkles className="w-5 h-5" /> Start Creating Your Story
                     </button>
                 </div>
             </header>
@@ -117,30 +104,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onGetStarted }) => {
                 </div>
             </section>
 
-            {/* CTA Section */}
-            <section className="py-24 bg-[#f8fafc]">
-                <div className="max-w-4xl mx-auto text-center px-6">
-                    <div className="bg-blue-600 rounded-3xl p-12 md:p-16 shadow-2xl shadow-blue-200">
-                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                            Ready to Forged your next masterpiece?
-                        </h2>
-                        <p className="text-blue-100 text-lg mb-10 max-w-2xl mx-auto">
-                            Join thousands of writers using NarrativeForge AI to break through
-                            writer's block and build immersive worlds.
-                        </p>
-                        <button
-                            onClick={onGetStarted}
-                            className="bg-white text-blue-600 hover:bg-slate-50 px-10 py-4 rounded-xl font-bold text-lg shadow-lg transition-all"
-                        >
-                            Start Creating Now
-                        </button>
-                    </div>
-                </div>
-            </section>
-
             {/* Footer */}
             <footer className="py-12 px-8 border-t border-slate-200 text-center text-slate-400 text-sm bg-white">
-                <p>© {new Date().getFullYear()} NarrativeForge AI. All rights reserved.</p>
+                <p>Copyright {new Date().getFullYear()} NarrativeForge AI. All rights reserved.</p>
             </footer>
         </div>
     );

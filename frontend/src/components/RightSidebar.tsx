@@ -1,67 +1,45 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Brain } from 'lucide-react';
 import MoodBoard from './MoodBoard';
 
 interface RightSidebarProps {
     images: { b64: string, text: string }[];
-    sentiment: { [key: string]: number };
 }
 
-const RightSidebar: React.FC<RightSidebarProps> = ({ images, sentiment }) => {
-    const [activeTab, setActiveTab] = useState<'analysis' | 'moodboard'>('moodboard');
+const RightSidebar: React.FC<RightSidebarProps> = ({ images }) => {
 
     return (
-        <div className="h-full flex flex-col bg-white border-l border-gray-200">
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200">
-                <button
-                    onClick={() => setActiveTab('analysis')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 
-                    ${activeTab === 'analysis'
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    🤖 Analysis
-                </button>
-                <button
-                    onClick={() => setActiveTab('moodboard')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 
-                    ${activeTab === 'moodboard'
-                            ? 'border-indigo-600 text-indigo-600'
-                            : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
-                >
-                    🖼️ Mood Board
-                </button>
+        <div className="h-full flex flex-col bg-white border-l border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 bg-gray-50/30">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                            <Brain className="w-5 h-5 text-indigo-600" /> Creative Insights
+                        </h2>
+                    </div>
+                </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-                {activeTab === 'analysis' ? (
-                    <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                            <h3 className="text-lg font-serif font-bold text-gray-900 mb-2">Analysis</h3>
-                            <p className="text-sm text-gray-500 mb-4">Results from AI analysis tools will appear here.</p>
+            <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
 
-                            <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
-                                <h4 className="text-sm font-bold text-indigo-900 flex items-center gap-2 mb-2">
-                                    <span>✨</span> Insights
-                                </h4>
-                                <p className="text-xs text-indigo-800 leading-relaxed">
-                                    Your story's tone and structure are being monitored. Individual tool data will manifest as you generate more content.
-                                </p>
-                            </div>
-                        </div>
+
+                {/* Mood Board Section */}
+                <section>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <span className="w-1 h-1 bg-indigo-400 rounded-full"></span>
+                            Story Sceneries
+                        </h3>
+                        {images.length > 0 && (
+                            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full">
+                                {images.length}
+                            </span>
+                        )}
                     </div>
-                ) : (
-                    <div className="space-y-4">
-                        <div className="mb-2">
-                            <h3 className="text-lg font-serif font-bold text-gray-900">Mood Board</h3>
-                            <p className="text-sm text-gray-500">Assemble visuals for your story.</p>
-                        </div>
-                        <MoodBoard images={images} />
-                    </div>
-                )}
+                    <MoodBoard images={images} />
+                </section>
             </div>
         </div>
     );

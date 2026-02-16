@@ -21,11 +21,6 @@ const MoodBoard: React.FC<MoodBoardProps> = ({ images }) => {
     return (
         <div className="space-y-6">
             <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] underline decoration-indigo-500/30">
-                        Visual Inspiration
-                    </h3>
-                </div>
                 <div className="flex flex-col gap-6">
                     {images.map((item, idx) => (
                         <motion.div

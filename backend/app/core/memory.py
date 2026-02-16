@@ -33,11 +33,12 @@ class MemoryManager:
 
     def add_event(self, text: str, metadata: dict = None):
         """
-        Adds a narrative event to the Vector DB.
+        Adds a narrative event to the Vector DB and maintains a rolling history of 10 items.
         """
         if metadata is None:
             metadata = {}
         
+        # Use a sortable ISO timestamp with precision
         metadata["timestamp"] = datetime.now().isoformat()
         
         # Simple ID generation
@@ -49,6 +50,38 @@ class MemoryManager:
             ids=[event_id]
         )
         print(f"Event added to memory: {event_id}")
+        
+        # Auto-cleanup to keep only last 10 prompts
+        self._cleanup_history()
+
+    def _cleanup_history(self):
+        """
+        Maintains only the 10 most recent events in ChromaDB.
+        """
+        try:
+            results = events_collection.get()
+            if not results['ids'] or len(results['ids']) <= 10:
+                return
+
+            # Combine IDs and timestamps for sorting
+            items = []
+            for i in range(len(results['ids'])):
+                items.append({
+                    "id": results['ids'][i],
+                    "timestamp": results['metadatas'][i].get("timestamp", "")
+                })
+
+            # Sort by timestamp (asc) to find oldest items
+            items.sort(key=lambda x: x['timestamp'])
+
+            # Identify IDs to delete (those beyond the last 10)
+            to_delete = [item['id'] for item in items[:-10]]
+            
+            if to_delete:
+                print(f"Cleaning up {len(to_delete)} old memory items...")
+                events_collection.delete(ids=to_delete)
+        except Exception as e:
+            print(f"Error during history cleanup: {e}")
 
     def get_relevant_context(self, query: str, n_results: int = 3) -> str:
         """
@@ -98,6 +131,39 @@ class MemoryManager:
             found = True
         
         return summary if found else ""
+
+    def get_all_history(self) -> dict:
+        """
+        Retrieves all past events, sorted by recency.
+        """
+        results = events_collection.get()
+        if not results['ids']:
+            return results
+
+        # Zip data to sort together
+        zipped = list(zip(results['ids'], results['documents'], results['metadatas']))
+        # Sort by timestamp in metadata (descending - most recent first)
+        zipped.sort(key=lambda x: x[2].get('timestamp', ''), reverse=True)
+
+        # Unzip
+        ids, docs, metas = zip(*zipped)
+        return {
+            "ids": list(ids),
+            "documents": list(docs),
+            "metadatas": list(metas)
+        }
+
+    def clear_all_history(self):
+        """
+        Deletes all entries from the history collection.
+        """
+        try:
+            results = events_collection.get()
+            if results['ids']:
+                events_collection.delete(ids=results['ids'])
+                print("All memory items cleared.")
+        except Exception as e:
+            print(f"Error clearing memory: {e}")
 
     def assemble_prompt_context(self, current_scene_query: str, active_characters: list[str]) -> str:
         """
