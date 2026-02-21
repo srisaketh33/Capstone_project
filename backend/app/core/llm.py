@@ -50,9 +50,6 @@ async def generate_text(prompt: str, model: str = None) -> str:
     random.shuffle(openai_keys)
     random.shuffle(perplexity_keys)
     random.shuffle(huggingface_keys)
-
-    # Keys are shuffled for rotation balance
-    pass
     
     global REFUSAL_KEYWORDS
     REFUSAL_KEYWORDS = [
@@ -62,61 +59,89 @@ async def generate_text(prompt: str, model: str = None) -> str:
     ]
 
     # Strategy 1: Try Gemini (Fastest & Accurate for Creative)
+    print(f"Strategy 1: Trying Gemini ({len(gemini_keys)} keys)...")
     for i, key in enumerate(gemini_keys):
         try:
             res = await generate_gemini_text(prompt, key)
             if res:
                 if any(kw.lower() in res.lower() for kw in REFUSAL_KEYWORDS):
+                    print(f"Gemini response triggered refusal keywords, skipping...")
                     continue
                 return res
         except Exception as e:
-            pass
+            print(f"Gemini Key {i+1} failed: {e}")
 
-    # Strategy 2: Try Perplexity (Secondary)
-    for i, key in enumerate(perplexity_keys):
-        try:
-            print(f"Trying Perplexity Key {i+1}/{len(perplexity_keys)}...")
-            async with httpx.AsyncClient(verify=False) as http_client:
-                client = AsyncOpenAI(api_key=key, base_url="https://api.perplexity.ai", http_client=http_client)
-                
-                system_msg = "You are a professional fiction writer. Output ONLY the story prose using basic English and simple vocabulary. Do NOT provide search results, citations, or summaries. Do NOT mention being an AI or Perplexity."
-                
-                response = await client.chat.completions.create(
-                    messages=[
-                        {"role": "system", "content": system_msg}, 
-                        {"role": "user", "content": prompt}
-                    ],
-                    model="sonar",
-                    temperature=0.8,
-                    timeout=10.0 # Reduced timeout for faster fallback
-                )
-                
-                content = response.choices[0].message.content
-                if not any(kw.lower() in content.lower() for kw in REFUSAL_KEYWORDS):
-                    return content
-        except Exception as e:
-            pass
+    # Strategy 2: Try OpenAI (Reliable Alternative)
+    if openai_keys:
+        print(f"Strategy 2: Trying OpenAI ({len(openai_keys)} keys)...")
+        for i, key in enumerate(openai_keys):
+            try:
+                async with httpx.AsyncClient(verify=False) as http_client:
+                    client = AsyncOpenAI(api_key=key, http_client=http_client)
+                    response = await client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": "You are a professional fiction writer."}, 
+                            {"role": "user", "content": prompt}
+                        ],
+                        model="gpt-4o-mini",
+                        temperature=0.8,
+                        timeout=15.0
+                    )
+                    content = response.choices[0].message.content
+                    if content:
+                        return content
+            except Exception as e:
+                print(f"OpenAI Key {i+1} failed: {e}")
+
+    # Strategy 3: Try Perplexity (Search-based Fallback)
+    if perplexity_keys:
+        print(f"Strategy 3: Trying Perplexity ({len(perplexity_keys)} keys)...")
+        for i, key in enumerate(perplexity_keys):
+            try:
+                async with httpx.AsyncClient(verify=False) as http_client:
+                    client = AsyncOpenAI(api_key=key, base_url="https://api.perplexity.ai", http_client=http_client)
+                    system_msg = "You are a professional fiction writer. Output ONLY the story prose using basic English and simple vocabulary. Do NOT provide search results, citations, or summaries. Do NOT mention being an AI or Perplexity."
+                    response = await client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": system_msg}, 
+                            {"role": "user", "content": prompt}
+                        ],
+                        model="sonar",
+                        temperature=0.8,
+                        timeout=10.0
+                    )
+                    content = response.choices[0].message.content
+                    if not any(kw.lower() in content.lower() for kw in REFUSAL_KEYWORDS):
+                        return content
+            except Exception as e:
+                print(f"Perplexity Key {i+1} failed: {e}")
 
     # Strategy 4: Try HuggingFace (Last Resort)
-    for i, key in enumerate(huggingface_keys):
-        try:
-            res = await generate_huggingface_text(prompt, key)
-            if res:
-                return res
-        except Exception as e:
-            pass
+    if huggingface_keys:
+        print(f"Strategy 4: Trying HuggingFace ({len(huggingface_keys)} keys)...")
+        for i, key in enumerate(huggingface_keys):
+            try:
+                res = await generate_huggingface_text(prompt, key)
+                if res:
+                    return res
+                print(f"HuggingFace Key {i+1} returned empty.")
+            except Exception as e:
+                print(f"HuggingFace Key {i+1} failed: {e}")
 
+    print("!!! CRITICAL: All LLM Providers Exhausted !!!")
     return ""
 
 async def generate_huggingface_text(prompt: str, api_key: str) -> str:
     """
-    Call HuggingFace Inference API as a fallback using the new OpenAI-compatible endpoint.
+    Call HuggingFace Inference API using the new OpenAI-compatible router endpoint.
+    This is highly reliable for Mistral, Llama, and Qwen models.
     """
     models = [
         "mistralai/Mistral-7B-Instruct-v0.3",
         "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "meta-llama/Llama-3.2-3B-Instruct",
-        "Qwen/Qwen2.5-72B-Instruct-AWQ"
+        "Qwen/Qwen2.5-72B-Instruct-AWQ",
+        "meta-llama/Meta-Llama-3-8B-Instruct"
     ]
     
     async with httpx.AsyncClient(verify=False) as client:
@@ -143,12 +168,9 @@ async def generate_huggingface_text(prompt: str, api_key: str) -> str:
                     result = response.json()
                     return result["choices"][0]["message"]["content"]
                 elif response.status_code == 503:
-                    print(f"HuggingFace {model} is loading, skipping...")
+                    # Model is loading
                     continue
-                else:
-                    print(f"HuggingFace {model} Error: {response.status_code} - {response.text[:100]}")
-            except Exception as e:
-                print(f"HuggingFace {model} failed: {e}")
+            except Exception:
                 continue
     return ""
 
@@ -237,14 +259,13 @@ async def generate_gemini_text(prompt: str, api_key: str) -> str:
     Supports fallback across multiple Gemini models.
     """
     models_to_try = [
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash",
         "gemini-2.0-flash-exp",
+        "gemini-2.0-flash",
         "gemini-1.5-flash",
         "gemini-1.5-flash-latest",
         "gemini-1.5-flash-8b",
         "gemini-1.5-pro",
+        "gemini-1.0-pro",
     ]
     
     last_exception = None

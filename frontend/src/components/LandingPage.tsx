@@ -70,10 +70,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <div className="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center mb-8 mx-auto group-hover:bg-blue-50 transition-colors">
                                 <BookOpen className="w-6 h-6 text-blue-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-4">AI Story Generation</h3>
+                            <h3 className="text-xl font-bold text-slate-800 mb-4">Story Generation</h3>
                             <p className="text-slate-500 leading-relaxed text-sm">
-                                Generate compelling story content from simple prompts, with AI that
-                                understands narrative structure and character depth.
+                                Make full stories from user prompts, so that can understand the story flow and characters.
                             </p>
                         </div>
 
@@ -82,10 +81,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             <div className="w-14 h-14 bg-white border border-slate-200 rounded-xl flex items-center justify-center mb-8 mx-auto group-hover:bg-blue-50 transition-colors">
                                 <Users className="w-6 h-6 text-blue-600" />
                             </div>
-                            <h3 className="text-xl font-bold text-slate-800 mb-4">Dynamic Character Builder</h3>
+                            <h3 className="text-xl font-bold text-slate-800 mb-4">Character Helper</h3>
                             <p className="text-slate-500 leading-relaxed text-sm">
-                                Create and manage detailed character profiles, giving your AI co-writer
-                                the context it needs to maintain consistency.
+                                Create and edit detailed character profiles so it keeps them consistent.
                             </p>
                         </div>
 
@@ -96,8 +94,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                             </div>
                             <h3 className="text-xl font-bold text-slate-800 mb-4">AI Scene Visualization</h3>
                             <p className="text-slate-500 leading-relaxed text-sm">
-                                Bring your scenes to life with AI-generated images, creating a rich,
-                                multi-modal experience for your narrative.
+                                Turn your scenes into AI images for a experience of story and visuals at a time.
                             </p>
                         </div>
                     </div>

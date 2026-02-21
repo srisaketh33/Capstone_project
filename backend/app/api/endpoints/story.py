@@ -20,6 +20,8 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
     Uses consolidated LLM calls to meet 2-8s text and 10-20s image requirements.
     Consolidates Narrative, Title, Image Prompt, Sentiment, and Validation into ONE LLM call.
     """
+    if not request.prompt or not request.prompt.strip():
+        raise HTTPException(status_code=400, detail="The prompt cannot be empty.")
     
     # 1. Retrieve Context
     try:
@@ -51,9 +53,13 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
         
         narrative_text = structured_data.get("narrative", "")
         if not narrative_text:
+            # Try a direct simple text call if structured fails
             narrative_text = await generate_text(base_prompt)
             if not narrative_text:
-                 raise HTTPException(status_code=500, detail="Text generation returned empty.")
+                 raise HTTPException(
+                     status_code=503, 
+                     detail="The AI service is currently overwhelmed or out of quota. Please check your API keys or try again in a minute."
+                 )
 
         # Sanitization
         FORBIDDEN_WORDS = ["Perplexity", "Shinchan", "Crayon Shin-chan", "search assistant", "as an AI"]

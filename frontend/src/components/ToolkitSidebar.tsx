@@ -1,13 +1,9 @@
-import React from 'react';
 import {
     Zap,
     Sparkles,
     Smile,
     GitBranch,
-    Image as ImageIcon,
-    Trash2,
-    History,
-    ArrowLeft
+    Image as ImageIcon
 } from 'lucide-react';
 
 interface ToolkitSidebarProps {
@@ -20,9 +16,6 @@ interface ToolkitSidebarProps {
     setEnablePlot: (v: boolean) => void;
     enableVisual: boolean;
     setEnableVisual: (v: boolean) => void;
-    onClear: () => void;
-    onBackToHome: () => void;
-    onFetchHistory: () => void;
     prompt: string;
     setPrompt: (v: string) => void;
 }
@@ -36,9 +29,6 @@ const ToolkitSidebar: React.FC<ToolkitSidebarProps> = ({
     setEnablePlot,
     enableVisual,
     setEnableVisual,
-    onClear,
-    onBackToHome,
-    onFetchHistory,
     prompt,
     setPrompt
 }) => {
@@ -119,9 +109,9 @@ const ToolkitSidebar: React.FC<ToolkitSidebarProps> = ({
 
                     <button
                         onClick={onGenerate}
-                        disabled={isLoading || (!enableSentiment && !enablePlot && !enableVisual)}
+                        disabled={isLoading || (!enableSentiment && !enablePlot && !enableVisual) || !prompt.trim()}
                         className={`w-full py-4 px-4 rounded-xl font-bold text-white transition-all shadow-lg flex items-center justify-center gap-2
-                        ${isLoading || (!enableSentiment && !enablePlot && !enableVisual)
+                        ${isLoading || (!enableSentiment && !enablePlot && !enableVisual) || !prompt.trim()
                                 ? 'bg-gray-300 cursor-not-allowed shadow-none'
                                 : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-indigo-200'
                             }`}
@@ -143,29 +133,6 @@ const ToolkitSidebar: React.FC<ToolkitSidebarProps> = ({
                     </button>
                 </div>
 
-                <div className="pt-8 space-y-3 border-t border-gray-100">
-                    <div className="grid grid-cols-2 gap-2">
-                        <button
-                            onClick={onClear}
-                            className="py-2 px-3 border border-red-100 rounded-lg text-[10px] text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center gap-1 font-bold"
-                        >
-                            <Trash2 className="w-3 h-3" /> Clear
-                        </button>
-                        <button
-                            onClick={onFetchHistory}
-                            className="py-2 px-3 border border-indigo-100 rounded-lg text-[10px] text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1 font-bold"
-                        >
-                            <History className="w-3 h-3" /> History
-                        </button>
-                    </div>
-                    <button
-                        onClick={onBackToHome}
-                        className="w-full py-3 px-3 bg-gray-900 text-white rounded-xl text-xs hover:bg-gray-800 transition-all uppercase font-bold tracking-wider flex items-center justify-center gap-2 shadow-lg"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Back to Home</span>
-                    </button>
-                </div>
             </div>
         </div>
     );

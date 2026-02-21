@@ -57,6 +57,10 @@ function App() {
       navigate('/');
       return;
     }
+    if (!prompt.trim()) {
+      setErrorMsg("Please enter a prompt to generate the story.");
+      return;
+    }
     setIsLoading(true);
     setErrorMsg("");
     try {
@@ -68,7 +72,7 @@ function App() {
         },
         body: JSON.stringify({
           user_id: username,
-          prompt: prompt || "Continue the story",
+          prompt: prompt,
           context_window_size: 3,
           enable_sentiment: enableSentiment,
           enable_plot_coherence: enablePlot,
@@ -167,6 +171,10 @@ function App() {
           element={
             token ? (
               <Layout
+                onBackToHome={() => {
+                  resetState();
+                  navigate('/');
+                }}
                 leftSidebar={
                   <ToolkitSidebar
                     onGenerate={() => handleGenerate()}
@@ -178,12 +186,6 @@ function App() {
                     setEnablePlot={setEnablePlot}
                     enableVisual={enableVisual}
                     setEnableVisual={setEnableVisual}
-                    onClear={handleClear}
-                    onBackToHome={() => {
-                      resetState();
-                      navigate('/');
-                    }}
-                    onFetchHistory={handleFetchHistory} // Pass the prop
                     prompt={prompt}
                     setPrompt={setPrompt}
                   />
@@ -195,7 +197,12 @@ function App() {
                         {errorMsg}
                       </div>
                     )}
-                    <StoryEditor text={text} onChange={setText} />
+                    <StoryEditor
+                      text={text}
+                      onChange={setText}
+                      onClear={handleClear}
+                      onFetchHistory={handleFetchHistory}
+                    />
                   </div>
                 }
                 rightSidebar={
