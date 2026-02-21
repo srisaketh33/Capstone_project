@@ -28,3 +28,13 @@ async def add_to_memory(request: MemoryAdd, current_user = Depends(get_current_u
 async def get_profiles(filter_text: Optional[str] = None, current_user = Depends(get_current_user)):
     summary = memory_manager.get_all_profiles_summary(filter_text=filter_text)
     return {"summary": summary}
+
+@router.get("/history")
+async def get_history(current_user = Depends(get_current_user)):
+    history = memory_manager.get_all_history()
+    return history
+
+@router.delete("/clear")
+async def clear_history(current_user = Depends(get_current_user)):
+    memory_manager.clear_all_history()
+    return {"status": "memory cleared"}

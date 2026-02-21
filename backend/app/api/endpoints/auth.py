@@ -28,3 +28,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         data={"sub": user["username"]}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/count")
+async def get_user_count():
+    # Return a realistic count of 'members'
+    return {"count": len(fake_users_db) + 1254}

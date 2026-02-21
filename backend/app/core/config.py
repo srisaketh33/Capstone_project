@@ -6,12 +6,11 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     STABILITY_API_KEY: str = ""
     PERPLEXITY_API_KEY: str = ""
-    ANTHROPIC_API_KEY: str = ""
+    HUGGINGFACE_API_KEY: str = ""
     PROJECT_NAME: str = "Story Forge"
 
     class Config:
-        # Look for .env in the project root (one level up from backend/)
-        # Using a list of paths for better robustness
+        case_sensitive = False
         env_file = [".env", "../.env", "../../.env", "../../../.env"]
         extra = "ignore"
 
