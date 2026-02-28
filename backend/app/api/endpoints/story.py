@@ -22,6 +22,59 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
     """
     if not request.prompt or not request.prompt.strip():
         raise HTTPException(status_code=400, detail="The prompt cannot be empty.")
+
+    # ── Input Validation ────────────────────────────────────────────────────
+    prompt_clean = request.prompt.strip()
+
+    # 1. Letter Density Check (Catch numeric strings, special chars, etc.)
+    letters_only = re.sub(r'[^a-zA-Z]', '', prompt_clean)
+    if len(prompt_clean) > 0 and (len(letters_only) / len(prompt_clean)) < 0.3:
+        raise HTTPException(
+            status_code=422,
+            detail="⚠️ Invalid prompt: Your prompt doesn't contain enough letters to form a story. Please use real words."
+        )
+
+    # 2. Minimum Absolute Letter Count
+    if len(letters_only) < 4:
+        raise HTTPException(
+            status_code=422,
+            detail="⚠️ Invalid prompt: Please describe your story idea with at least 4-5 letters."
+        )
+
+    # 3. Robust Gibberish Detection
+    words = re.split(r'\s+', prompt_clean)
+    vowels = set('aeiouAEIOU')
+    consonant_cluster = re.compile(r'[bcdfghjklmnpqrstvwxyz]{5,}', re.I)
+    gibberish_count = 0
+    
+    meaningful_words = [w for w in words if len(re.sub(r'[^a-zA-Z]', '', w)) >= 3]
+    for w in meaningful_words:
+        w_letters = re.sub(r'[^a-zA-Z]', '', w)
+        v_count = sum(1 for c in w_letters if c in vowels)
+        v_ratio = v_count / len(w_letters)
+
+        # Check A: No vowels in a 4+ letter word
+        if len(w_letters) >= 4 and v_count == 0:
+            gibberish_count += 1
+            continue
+        
+        # Check B: Very low vowel ratio in long words (e.g. "adhgjsgdcjh")
+        if len(w_letters) >= 6 and v_ratio < 0.15:
+            gibberish_count += 1
+            continue
+
+        # Check C: Long consonant clusters
+        if consonant_cluster.search(w_letters):
+            gibberish_count += 1
+            continue
+
+    if len(meaningful_words) > 0 and (gibberish_count / len(meaningful_words)) >= 0.5:
+        raise HTTPException(
+            status_code=422,
+            detail="⚠️ Invalid prompt: Your prompt contains unrecognizable or nonsensical words. Please enter valid story ideas."
+        )
+    # ────────────────────────────────────────────────────────────────────────
+
     
     # 1. Retrieve Context
     try:
