@@ -42,20 +42,17 @@ async def generate_text(prompt: str, model: str = None) -> str:
             if k.startswith("sk-") and "perplexity" not in k.lower():
                 openai_keys.append(k)
 
-    perplexity_keys = [k.strip() for k in settings.PERPLEXITY_API_KEY.split(",") if k.strip()]
     huggingface_keys = [k.strip() for k in settings.HUGGINGFACE_API_KEY.split(",") if k.strip()]
 
     import random
     random.shuffle(gemini_keys)
     random.shuffle(openai_keys)
-    random.shuffle(perplexity_keys)
     random.shuffle(huggingface_keys)
     
     global REFUSAL_KEYWORDS
     REFUSAL_KEYWORDS = [
-        "I'm Perplexity", "Perplexity, a search assistant", "not a creative writing tool", 
-        "cannot generate", "I clarify my role", "as an AI model", "search results provided",
-        "I appreciate you sharing", "I need to clarify", "as a search-based"
+        "cannot generate", "I clarify my role", "as an AI model",
+        "I appreciate you sharing", "I need to clarify"
     ]
 
     # Strategy 1: Try Gemini (Fastest & Accurate for Creative)
@@ -74,51 +71,31 @@ async def generate_text(prompt: str, model: str = None) -> str:
     # Strategy 2: Try OpenAI (Reliable Alternative)
     if openai_keys:
         print(f"Strategy 2: Trying OpenAI ({len(openai_keys)} keys)...")
+        openai_models = ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
         for i, key in enumerate(openai_keys):
-            try:
-                async with httpx.AsyncClient(verify=False) as http_client:
-                    client = AsyncOpenAI(api_key=key, http_client=http_client)
-                    response = await client.chat.completions.create(
-                        messages=[
-                            {"role": "system", "content": "You are a professional fiction writer."}, 
-                            {"role": "user", "content": prompt}
-                        ],
-                        model="gpt-4o-mini",
-                        temperature=0.8,
-                        timeout=15.0
-                    )
-                    content = response.choices[0].message.content
-                    if content:
-                        return content
-            except Exception as e:
-                print(f"OpenAI Key {i+1} failed: {e}")
+            for model_name in openai_models:
+                try:
+                    async with httpx.AsyncClient(verify=False) as http_client:
+                        client = AsyncOpenAI(api_key=key, http_client=http_client)
+                        response = await client.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": "You are a professional fiction writer."}, 
+                                {"role": "user", "content": prompt}
+                            ],
+                            model=model_name,
+                            temperature=0.8,
+                            timeout=15.0
+                        )
+                        content = response.choices[0].message.content
+                        if content:
+                            return content
+                except Exception as e:
+                    print(f"OpenAI Key {i+1} Model {model_name} failed: {e}")
+                    continue # Try next model or next key
 
-    # Strategy 3: Try Perplexity (Search-based Fallback)
-    if perplexity_keys:
-        print(f"Strategy 3: Trying Perplexity ({len(perplexity_keys)} keys)...")
-        for i, key in enumerate(perplexity_keys):
-            try:
-                async with httpx.AsyncClient(verify=False) as http_client:
-                    client = AsyncOpenAI(api_key=key, base_url="https://api.perplexity.ai", http_client=http_client)
-                    system_msg = "You are a professional fiction writer. Output ONLY the story prose using basic English and simple vocabulary. Do NOT provide search results, citations, or summaries. Do NOT mention being an AI or Perplexity."
-                    response = await client.chat.completions.create(
-                        messages=[
-                            {"role": "system", "content": system_msg}, 
-                            {"role": "user", "content": prompt}
-                        ],
-                        model="sonar",
-                        temperature=0.8,
-                        timeout=10.0
-                    )
-                    content = response.choices[0].message.content
-                    if not any(kw.lower() in content.lower() for kw in REFUSAL_KEYWORDS):
-                        return content
-            except Exception as e:
-                print(f"Perplexity Key {i+1} failed: {e}")
-
-    # Strategy 4: Try HuggingFace (Last Resort)
+    # Strategy 3: Try HuggingFace (Open-source Alternative)
     if huggingface_keys:
-        print(f"Strategy 4: Trying HuggingFace ({len(huggingface_keys)} keys)...")
+        print(f"Strategy 3: Trying HuggingFace ({len(huggingface_keys)} keys)...")
         for i, key in enumerate(huggingface_keys):
             try:
                 res = await generate_huggingface_text(prompt, key)
@@ -188,7 +165,7 @@ async def generate_structured_story(prompt: str) -> dict:
     
     JSON STRUCTURE:
     {{
-      "narrative": "Professional story text with smooth flow and sophisticated vocabulary (200-400 words).",
+      "narrative": "Professional story text with smooth flow and sophisticated vocabulary (250-400 words).",
       "title": "3-5 word professional title.",
       "image_prompt": "Pure visual description. NO TEXT, NO LOGOS, NO WRITING. Focus on lighting, atmosphere, and characters.",
       "sentiment": {{ "joy": 0.5, "sadness": 0.1, "anger": 0.0, "fear": 0.0, "surprise": 0.1 }},
@@ -259,12 +236,14 @@ async def generate_gemini_text(prompt: str, api_key: str) -> str:
     Supports fallback across multiple Gemini models.
     """
     models_to_try = [
-        "gemini-2.0-flash-exp",
         "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview-02-05", 
+        "gemini-2.0-pro-exp-02-05",
         "gemini-1.5-flash",
         "gemini-1.5-flash-latest",
         "gemini-1.5-flash-8b",
         "gemini-1.5-pro",
+        "gemini-2.0-flash-exp",
         "gemini-1.0-pro",
     ]
     

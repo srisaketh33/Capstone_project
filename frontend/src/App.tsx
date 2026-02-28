@@ -50,6 +50,65 @@ function App() {
     }
   };
 
+  // ── Prompt Validation ──────────────────────────────────────────────────────
+  const validatePrompt = (input: string): string | null => {
+    const trimmed = input.trim();
+    if (!trimmed) return "Prompt cannot be empty.";
+
+    // 1. Letter Density Check (Reject if too few letters compared to total length)
+    // This catches "1112223344@56." or "!!! $$$ ###"
+    const lettersTotal = trimmed.replace(/[^a-zA-Z]/g, '').length;
+    if (trimmed.length > 0 && (lettersTotal / trimmed.length) < 0.3) {
+      return "Your prompt doesn't contain enough letters to form a story. Please use real words.";
+    }
+
+    // 2. Minimum Absolute Letter Count
+    if (lettersTotal < 4) {
+      return "Your prompt is too short. Please describe your story idea with at least 4-5 letters.";
+    }
+
+    // 3. Gibberish Detection (Consonant clusters and Vowel-less words)
+    const words = trimmed.split(/\s+/).filter(w => w.length >= 3);
+    const VOWELS = /[aeiouAEIOU]/;
+    const CONSONANT_CLUSTER = /[bcdfghjklmnpqrstvwxyz]{5,}/i; // 5 consonants in a row
+    let gibberishCount = 0;
+
+    for (const word of words) {
+      const letters = word.replace(/[^a-zA-Z]/g, '');
+      if (letters.length < 3) continue;
+
+      const vowelCount = (letters.match(/[aeiou]/gi) || []).length;
+      const vowelRatio = vowelCount / letters.length;
+
+      // Check A: No vowels in a medium/long word
+      if (letters.length >= 4 && !VOWELS.test(letters)) {
+        gibberishCount++;
+        continue;
+      }
+
+      // Check B: Extreme low vowel ratio for long words (e.g. "adhgjsgdcjh" -> 1/11 = 9%)
+      if (letters.length >= 6 && vowelRatio < 0.15) {
+        gibberishCount++;
+        continue;
+      }
+
+      // Check C: Unnatural consonant clusters (e.g. "strths")
+      if (CONSONANT_CLUSTER.test(letters)) {
+        gibberishCount++;
+        continue;
+      }
+    }
+
+    // If a significant portion of the prompt is gibberish
+    const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
+    if (wordCount > 0 && (gibberishCount / wordCount) >= 0.5) {
+      return "Your prompt contains unrecognizable or nonsensical words. Please enter valid story ideas.";
+    }
+
+    return null; // Valid ✓
+  };
+  // ──────────────────────────────────────────────────────────────────────────
+
   const handleGenerate = async (passedToken?: string) => {
     const activeToken = passedToken || token;
     if (!activeToken) {
@@ -59,6 +118,13 @@ function App() {
     }
     if (!prompt.trim()) {
       setErrorMsg("Please enter a prompt to generate the story.");
+      return;
+    }
+
+    // Run input validation
+    const validationError = validatePrompt(prompt);
+    if (validationError) {
+      setErrorMsg(`⚠️ Invalid prompt: ${validationError}`);
       return;
     }
     setIsLoading(true);
