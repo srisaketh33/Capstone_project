@@ -79,12 +79,13 @@ async def generate_text(prompt: str, model: str = None) -> str:
                         client = AsyncOpenAI(api_key=key, http_client=http_client)
                         response = await client.chat.completions.create(
                             messages=[
-                                {"role": "system", "content": "You are a professional fiction writer."}, 
+                                {"role": "system", "content": "You are a professional novelist. You always provide extremely long, detailed, and descriptive story segments (500+ words)."}, 
                                 {"role": "user", "content": prompt}
                             ],
                             model=model_name,
                             temperature=0.8,
-                            timeout=15.0
+                            max_tokens=2500,
+                            timeout=30.0
                         )
                         content = response.choices[0].message.content
                         if content:
@@ -133,11 +134,11 @@ async def generate_huggingface_text(prompt: str, api_key: str) -> str:
                 payload = {
                     "model": model,
                     "messages": [
-                        {"role": "system", "content": "You are a professional fiction writer."},
+                        {"role": "system", "content": "You are a professional novelist. You ALWAYS provide extremely long, detailed, and immersive story segments (at least 6-8 paragraphs). Do not be concise."},
                         {"role": "user", "content": prompt}
                     ],
-                    "max_tokens": 1000,
-                    "temperature": 0.7
+                    "max_tokens": 3000,
+                    "temperature": 0.8
                 }
                 
                 response = await client.post(url, headers=headers, json=payload, timeout=25.0)
@@ -165,8 +166,8 @@ async def generate_structured_story(prompt: str) -> dict:
     
     JSON STRUCTURE:
     {{
-      "narrative": "Professional story text with smooth flow and sophisticated vocabulary (250-400 words).",
-      "title": "3-5 word professional title.",
+      "narrative": "A MASSIVE, detailed story segment. You MUST write at least 600-800 words. Expand heavily on environmental details, inner monologue, and dialogue. Use at least 8-10 paragraphs.",
+      "title": "A creative 3-5 word title.",
       "image_prompt": "Pure visual description. NO TEXT, NO LOGOS, NO WRITING. Focus on lighting, atmosphere, and characters.",
       "sentiment": {{ "joy": 0.5, "sadness": 0.1, "anger": 0.0, "fear": 0.0, "surprise": 0.1 }},
       "validation": {{ "plot_holes": [], "character_inconsistencies": [], "logic_errors": [], "suggestions": [] }}

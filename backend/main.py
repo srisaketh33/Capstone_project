@@ -1,24 +1,21 @@
 import os
-import certifi
+from dotenv import load_dotenv
+# Ensure the local .env is loaded first
+load_dotenv(override=True)
 
-# Fix for gRPC SSL certificate issues on Windows/Proxy environments
+import certifi
+# Fix for SSL certificate issues on Windows
 os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = certifi.where()
-# Fix for httpx/requests SSL certificate issues
 os.environ["SSL_CERT_FILE"] = certifi.where()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.endpoints import story, auth, generation, memory, sentiment, validator, images
+from app.api.endpoints import story, auth, generation, memory, sentiment, validator, images, admin
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # CORS (Allow Frontend)
-origins = [
-    "http://localhost:5173", # Vite default
-    "http://localhost:3000",
-]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,6 +32,7 @@ app.include_router(memory.router, prefix="/memory", tags=["vector-db"])
 app.include_router(sentiment.router, prefix="/sentiment", tags=["analysis"])
 app.include_router(validator.router, prefix="/validator", tags=["quality"])
 app.include_router(images.router, prefix="/images", tags=["image-generation"])
+app.include_router(admin.router, prefix="/admin", tags=["admin-dashboard"])
 
 @app.get("/")
 def read_root():

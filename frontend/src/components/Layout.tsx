@@ -1,29 +1,51 @@
-import React from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, LogOut, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
+    username?: string;
+    role?: string;
     leftSidebar: React.ReactNode;
     editor: React.ReactNode;
     rightSidebar: React.ReactNode;
-    onBackToHome: () => void;
+    onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ leftSidebar, editor, rightSidebar, onBackToHome }) => {
+const Layout: React.FC<LayoutProps> = ({ username, role, leftSidebar, editor, rightSidebar, onLogout }) => {
+    const navigate = useNavigate();
     return (
         <div className="h-screen flex flex-col bg-gray-50 text-gray-900 font-sans">
             <header className="px-6 py-3 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
-                <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-4">
+                    <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">
+                        Hi {username || 'Storyteller'}
+                    </span>
+                    {role === 'admin' && (
+                        <button
+                            onClick={() => navigate('/admin')}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 uppercase tracking-wider"
+                        >
+                            <Shield className="w-3.5 h-3.5" />
+                            Admin Dashboard
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-2 justify-center flex-1">
                     <BookOpen className="w-6 h-6 text-indigo-600" />
                     <h1 className="text-xl font-bold font-serif text-slate-800 tracking-tight">
                         NarrativeForge AI
                     </h1>
                 </div>
-                <button
-                    onClick={onBackToHome}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                >
-                    Back to Home
-                </button>
+
+                <div className="flex items-center gap-4 flex-1 justify-end">
+                    <button
+                        onClick={onLogout}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-all border border-transparent hover:border-red-100"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Log Out
+                    </button>
+                </div>
             </header>
 
             {/* Main Content - 3 Column Grid */}
