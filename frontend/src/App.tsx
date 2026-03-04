@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { X, Trash2 } from 'lucide-react';
 import Layout from './components/Layout';
@@ -6,6 +6,8 @@ import StoryEditor from './components/StoryEditor';
 import ToolkitSidebar from './components/ToolkitSidebar';
 import RightSidebar from './components/RightSidebar';
 import LandingPage from './components/LandingPage';
+import LoginPage from './components/LoginPage';
+import AdminDashboard from './components/AdminDashboard';
 
 function App() {
   const navigate = useNavigate();
@@ -21,33 +23,57 @@ function App() {
   const [enableVisual, setEnableVisual] = useState(false);
 
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [username] = useState("Admin");
-  const [password] = useState("Password@123");
+  const [displayName, setDisplayName] = useState<string>(localStorage.getItem('displayName') || "Guest");
+  const [role, setRole] = useState<string>(localStorage.getItem('role') || "user");
+  const [historyEnabled, setHistoryEnabled] = useState<boolean>(false);
 
-  const handleLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    try {
-      // Direct login with internal credentials
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
-
-      const response = await fetch('http://127.0.0.1:8000/auth/login', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) throw new Error("Login failed");
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token);
-      setToken(data.access_token);
-      navigate('/forge');
-    } catch (error) {
-      console.error("Auto-login failed:", error);
-      // Fallback: still navigate to forge if dev environment, 
-      // but usually we want token to be valid.
-      navigate('/forge');
+  useEffect(() => {
+    if (token) {
+      checkUserStatus();
     }
+  }, [token]);
+
+  const checkUserStatus = async () => {
+    try {
+      const resp = await fetch('http://127.0.0.1:8000/auth/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setHistoryEnabled(data.history_enabled);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user status", err);
+    }
+  };
+
+  const handleLoginSuccess = (newToken: string, name: string) => {
+    // Decode basic payload to get role if needed, or better, just fetch status
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('displayName', name);
+    setToken(newToken);
+    setDisplayName(name);
+
+    // We'll determine role from the status check
+    checkUserStatus();
+
+    // Simple check: if name is Admin, it's likely admin role
+    if (name === "Admin") {
+      localStorage.setItem('role', 'admin');
+      setRole('admin');
+    } else {
+      localStorage.setItem('role', 'user');
+      setRole('user');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('displayName');
+    resetState();
+    window.location.href = '/';
   };
 
   // ── Prompt Validation ──────────────────────────────────────────────────────
@@ -113,7 +139,7 @@ function App() {
     const activeToken = passedToken || token;
     if (!activeToken) {
       alert("Please login first");
-      navigate('/');
+      navigate('/login');
       return;
     }
     if (!prompt.trim()) {
@@ -137,7 +163,7 @@ function App() {
           'Authorization': `Bearer ${activeToken}`
         },
         body: JSON.stringify({
-          user_id: username,
+          user_id: displayName,
           prompt: prompt,
           context_window_size: 3,
           enable_sentiment: enableSentiment,
@@ -190,24 +216,24 @@ function App() {
 
   const handleFetchHistory = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/memory/history', {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch('http://127.0.0.1:8000/story/history', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       const data = await res.json();
-      if (data.metadatas && data.metadatas.length > 0) {
-        const items = data.metadatas
-          .map((m: any) => ({
-            prompt: m.prompt || "Continue the story",
-            timestamp: m.timestamp ? new Date(m.timestamp).toLocaleString() : "Recently"
-          }))
-          .filter((item: any) => item.prompt !== "Continue the story");
-
+      if (Array.isArray(data)) {
+        const items = data.map((entry: any) => ({
+          prompt: entry.prompt || "No prompt recorded",
+          timestamp: entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "Recently"
+        }));
         setHistoryItems(items);
       } else {
         setHistoryItems([]);
       }
       setShowHistoryModal(true);
     } catch (err) {
+      console.error("History fetch failed:", err);
       alert("Failed to fetch history");
     }
   };
@@ -217,7 +243,7 @@ function App() {
     try {
       await fetch('http://127.0.0.1:8000/memory/clear', {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token} ` }
       });
       setHistoryItems([]);
     } catch (err) {
@@ -230,17 +256,30 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<LandingPage onGetStarted={handleLogin} />}
+          element={<LandingPage onGetStarted={() => navigate('/login')} />}
+        />
+        <Route
+          path="/login"
+          element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
+        />
+        <Route
+          path="/admin"
+          element={
+            role === 'admin' ? (
+              <AdminDashboard token={token} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/forge" />
+            )
+          }
         />
         <Route
           path="/forge"
           element={
             token ? (
               <Layout
-                onBackToHome={() => {
-                  resetState();
-                  navigate('/');
-                }}
+                username={displayName}
+                role={role}
+                onLogout={handleLogout}
                 leftSidebar={
                   <ToolkitSidebar
                     onGenerate={() => handleGenerate()}
@@ -267,7 +306,7 @@ function App() {
                       text={text}
                       onChange={setText}
                       onClear={handleClear}
-                      onFetchHistory={handleFetchHistory}
+                      onFetchHistory={historyEnabled ? handleFetchHistory : undefined}
                     />
                   </div>
                 }
@@ -278,11 +317,12 @@ function App() {
                 }
               />
             ) : (
-              <Navigate to="/" />
+              <Navigate to="/login" />
             )
           }
         />
       </Routes>
+
 
       {/* Global History Modal - Simplified Version */}
       {showHistoryModal && (

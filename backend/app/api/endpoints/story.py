@@ -7,6 +7,8 @@ from app.core.image_generation import generate_image_from_prompt
 from app.core.coherence import check_consistency
 from app.core.llm import generate_text, generate_structured_story
 from app.core.auth import get_current_user
+from app.core.database import get_db
+from datetime import datetime
 import re
 import traceback
 import time
@@ -84,7 +86,7 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
         
         # 2. Consolidated Generation
         base_prompt = f"""
-        System: You are an expert writer for a professional business audience. Your goal is to write a clear, sophisticated story segment.
+        System: You are an expert novelist and storyteller. Your goal is to write a rich, immersive, and multi-paragraph story segment that feels like a complete chapter or scene.
         
         PAST CONTEXT:
         ---
@@ -94,12 +96,11 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
         LATEST USER PROMPT: {request.prompt}
         
         STRICT WRITING RULES:
-        1. STYLE: Professional, intelligent, and flowy. Avoid overly choppy or childish sentences.
-        2. TONE: Use business-appropriate language that remains accessible but feels high-quality.
-        3. FLOW: Use varied sentence lengths to create a natural narrative rhythm.
-        4. CHARACTERS: Give recurring characters (like Mark) specific, memorable physical traits to ensure they don't feel generic. Mention these traits subtly in the narrative.
-        5. IMAGE PROMPT RULE: In the "image_prompt" field, do NOT include any instructions for text, logos, or words inside the image. Focus purely on visual atmosphere and character actions.
-        6. NO META-TALK: Output only the story.
+        1. LENGTH: You MUST write at least 350-500 words. This should span across 5-7 detailed paragraphs. DO NOT be brief.
+        2. DEPTH: Explore the characters' emotions, the environment, and the sensory experience in great detail.
+        3. STYLE: Evocative, literary, and immersive. 
+        4. FLOW: Use sophisticated transitions and varied sentence structures.
+        5. NO META-TALK: Output only the requested JSON.
         """
         
         structured_data = await generate_structured_story(base_prompt)
@@ -115,6 +116,9 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
                  )
 
         # Sanitization
+        TEXT_CLEANUP_REGEX = r'(?i)\b(sentiment|joy|sadness|anger|fear|surprise|plot_holes|character_inconsistencies|logic_errors|suggestions|validation|image_prompt)\b[:\s{].*'
+        narrative_text = re.sub(TEXT_CLEANUP_REGEX, '', narrative_text, flags=re.DOTALL)
+        
         FORBIDDEN_WORDS = ["Perplexity", "Shinchan", "Crayon Shin-chan", "search assistant", "as an AI"]
         narrative_text = re.sub(r'\[\d+\]', '', narrative_text)
         for word in FORBIDDEN_WORDS:
@@ -152,6 +156,17 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
             final_image_prompt = f"{image_prompt}, {style_suffix}"
             image_b64 = await generate_image_from_prompt(final_image_prompt)
 
+        # 6. Log to MongoDB
+        try:
+            db = await get_db()
+            await db.story_logs.insert_one({
+                "email": current_user.email,
+                "prompt": request.prompt,
+                "timestamp": datetime.utcnow()
+            })
+        except Exception as log_err:
+            print(f"Failed to log story to MongoDB: {log_err}")
+
         return StoryResponse(
             text=narrative_text,
             title=scene_title,
@@ -166,3 +181,16 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
         if "429" in err_msg or "Quota" in err_msg:
              raise HTTPException(status_code=429, detail=f"Daily AI Quota Exceeded. {err_msg}")
         raise HTTPException(status_code=500, detail=f"Generation Error: {err_msg}")
+@router.get("/history")
+async def get_user_story_history(current_user = Depends(get_current_user)):
+    """
+    Retrieves the logged-in user's own story history.
+    """
+    db = await get_db()
+    cursor = db.story_logs.find(
+        {"email": current_user.email},
+        {"_id": 0, "prompt": 1, "timestamp": 1}
+    ).sort("timestamp", -1)
+    
+    history = await cursor.to_list(length=50)
+    return history

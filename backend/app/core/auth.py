@@ -5,24 +5,29 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
+from app.core.config import settings
+from app.core.database import get_db
 
-# Configuration (In production, move these to config.py/env)
+# Configuration 
 SECRET_KEY = "your-secret-key-for-story-forge" # Change this!
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 10080 # 1 Week
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 class Token(BaseModel):
     access_token: str
     token_type: str
+    name: Optional[str] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None
 
 class User(BaseModel):
-    username: str
+    email: str
+    name: Optional[str] = None
+    role: Optional[str] = None
     disabled: Optional[bool] = None
 
 def verify_password(plain_password, hashed_password):
@@ -49,15 +54,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        email: str = payload.get("sub")
+        if email is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
+        token_data = TokenData(username=email)
     except JWTError:
         raise credentials_exception
     
-    # In a real app, you'd fetch from DB here
-    user = User(username=token_data.username)
-    if user is None:
+    db = await get_db()
+    user_dict = await db.users.find_one({"username": email})
+    
+    if user_dict is None:
         raise credentials_exception
-    return user
+        
+    return User(
+        email=user_dict["username"], 
+        name=user_dict.get("name"), 
+        role=user_dict.get("role"),
+        disabled=user_dict.get("disabled")
+    )
