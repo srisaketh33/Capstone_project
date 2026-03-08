@@ -26,6 +26,7 @@ function App() {
   const [displayName, setDisplayName] = useState<string>(localStorage.getItem('displayName') || "Guest");
   const [role, setRole] = useState<string>(localStorage.getItem('role') || "user");
   const [historyEnabled, setHistoryEnabled] = useState<boolean>(false);
+  const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (token) {
@@ -33,16 +34,23 @@ function App() {
     }
   }, [token]);
 
-  const checkUserStatus = async () => {
+  const checkUserStatus = async (passedToken?: string) => {
+    const activeToken = passedToken || token;
+    if (!activeToken) return;
+
     try {
       const resp = await fetch('http://127.0.0.1:8000/auth/status', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${activeToken}`
         }
       });
       if (resp.ok) {
         const data = await resp.json();
         setHistoryEnabled(data.history_enabled);
+        if (data.role) {
+          setRole(data.role.toLowerCase());
+          localStorage.setItem('role', data.role.toLowerCase());
+        }
       }
     } catch (err) {
       console.error("Failed to fetch user status", err);
@@ -50,23 +58,19 @@ function App() {
   };
 
   const handleLoginSuccess = (newToken: string, name: string) => {
-    // Decode basic payload to get role if needed, or better, just fetch status
     localStorage.setItem('token', newToken);
     localStorage.setItem('displayName', name);
     setToken(newToken);
     setDisplayName(name);
 
-    // We'll determine role from the status check
-    checkUserStatus();
+    // Fetch status using the new token immediately
+    checkUserStatus(newToken);
 
-    // Simple check: if name is Admin, it's likely admin role
     if (name === "Admin") {
       localStorage.setItem('role', 'admin');
       setRole('admin');
-    } else {
-      localStorage.setItem('role', 'user');
-      setRole('user');
     }
+    navigate('/forge');
   };
 
   const handleLogout = () => {
@@ -225,7 +229,7 @@ function App() {
       if (Array.isArray(data)) {
         const items = data.map((entry: any) => ({
           prompt: entry.prompt || "No prompt recorded",
-          timestamp: entry.timestamp ? new Date(entry.timestamp).toLocaleString() : "Recently"
+          timestamp: entry.timestamp ? new Date(entry.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : "Recently"
         }));
         setHistoryItems(items);
       } else {
@@ -263,16 +267,6 @@ function App() {
           element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
         />
         <Route
-          path="/admin"
-          element={
-            role === 'admin' ? (
-              <AdminDashboard token={token} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/forge" />
-            )
-          }
-        />
-        <Route
           path="/forge"
           element={
             token ? (
@@ -280,6 +274,7 @@ function App() {
                 username={displayName}
                 role={role}
                 onLogout={handleLogout}
+                onOpenAdmin={() => setShowAdminModal(true)}
                 leftSidebar={
                   <ToolkitSidebar
                     onGenerate={() => handleGenerate()}
@@ -322,6 +317,14 @@ function App() {
           }
         />
       </Routes>
+
+      {/* Admin Dashboard Integrated Modal */}
+      {showAdminModal && (
+        <AdminDashboard
+          token={token}
+          onClose={() => setShowAdminModal(false)}
+        />
+      )}
 
 
       {/* Global History Modal - Simplified Version */}

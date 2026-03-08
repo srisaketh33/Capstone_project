@@ -3,17 +3,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.auth import Token, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash, verify_password, get_current_user
 from app.core.database import get_db
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from pydantic import BaseModel, Field
 
 router = APIRouter()
 
 class UserCreate(BaseModel):
-    name: str
-    email: str
-    password: str
-    username: str = None
-    role: str = "user"
+    name: str = Field(..., description="The user's full name")
+    email: str = Field(..., description="The user's email address (used for login)")
+    password: str = Field(..., description="The user's password (min 8 chars, 1 uppercase, 1 digit)")
+    username: str = Field(None, description="Optional username (defaults to email)")
+    role: str = Field("user", description="The user's role (defaults to 'user')")
+
+class MessageResponse(BaseModel):
+    message: str
+
+class UserStatusResponse(BaseModel):
+    history_enabled: bool
+    login_count: int
+    role: str
 
 def validate_password_complexity(password: str):
     if len(password) < 8:
@@ -26,8 +34,12 @@ def validate_password_complexity(password: str):
         return False, "Password must contain at least one alpha letter."
     return True, ""
 
-@router.post("/register")
+@router.post("/register", response_model=MessageResponse, summary="Register a new user")
 async def register(user: UserCreate):
+    """
+    Creates a new user account in the system.
+    Validation is performed on email uniqueness and password complexity.
+    """
     db = await get_db()
     
     # Check if user already exists
@@ -52,14 +64,18 @@ async def register(user: UserCreate):
         "role": user.role,
         "hashed_password": get_password_hash(user.password),
         "disabled": False,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
     await db.users.insert_one(new_user)
     
     return {"message": "User registered successfully"}
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, summary="Login for access token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Authenticates a user and returns a JWT access token.
+    Accepts email or username in the 'username' field of the form.
+    """
     db = await get_db()
     
     # Try finding user by username OR email
@@ -84,7 +100,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
                 "role": "admin",
                 "hashed_password": hashed_pw,
                 "disabled": False,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(timezone.utc)
              }
              await db.users.insert_one(user)
              print(f"INFO: Successfully seeded Admin with email {target_admin_email} and role admin.")
@@ -98,12 +114,21 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Log login activity
+    login_email = user.get("email", user["username"])
     await db.activity_logs.insert_one({
-        "email": user.get("email", user["username"]),
+        "email": login_email,
         "event": "login",
-        "timestamp": datetime.utcnow()
+        "timestamp": datetime.now(timezone.utc)
     })
+
+    # --- Auto-delete excess: Keep only latest 10 login logs total ---
+    login_logs_cursor = db.activity_logs.find().sort("timestamp", -1)
+    login_logs = await login_logs_cursor.to_list(length=100)
+    if len(login_logs) > 10:
+        ids_to_keep = [log["_id"] for log in login_logs[:10]]
+        await db.activity_logs.delete_many({
+            "_id": {"$nin": ids_to_keep}
+        })
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -117,11 +142,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {
         "access_token": access_token, 
         "token_type": "bearer",
-        "name": display_name
+        "name": display_name,
+        "role": user["role"]
     }
 
-@router.get("/status")
-async def get_user_status(current_user = Depends(get_current_user)):
+@router.get("/status", response_model=UserStatusResponse, summary="Get current user status")
+async def get_user_status(current_user: UserStatusResponse = Depends(get_current_user)):
     """
     Check if the user is eligible for certain features (like History).
     """
@@ -129,7 +155,7 @@ async def get_user_status(current_user = Depends(get_current_user)):
     
     # Root/Admin always has history enabled
     if current_user.role == "admin":
-        return {"history_enabled": True, "login_count": 999}
+        return {"history_enabled": True, "login_count": 999, "role": "admin"}
         
     # Count normal user logins
     login_count = await db.activity_logs.count_documents({
@@ -139,5 +165,6 @@ async def get_user_status(current_user = Depends(get_current_user)):
     
     return {
         "history_enabled": login_count >= 2,
-        "login_count": login_count
+        "login_count": login_count,
+        "role": current_user.role
     }
