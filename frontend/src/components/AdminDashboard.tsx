@@ -25,6 +25,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, onClose }) => {
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState<'users' | 'logins' | 'prompts'>('logins');
+    
+    // No separate Admin build states needed anymore
 
     useEffect(() => {
         if (token) {
@@ -78,6 +80,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, onClose }) => {
         }
     };
 
+    const handlePromoteUser = async (email: string) => {
+        if (!window.confirm(`Are you sure you want to promote ${email} to Administrator?`)) return;
+        try {
+            const resp = await fetch(`http://127.0.0.1:8000/admin/users/${email}/promote`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                alert("User successfully promoted to Admin!");
+                fetchUsers(); // Refresh the list
+            } else {
+                const data = await resp.json();
+                alert(data.detail || "Failed to promote user.");
+            }
+        } catch (err) {
+            alert("Error connecting to server.");
+        }
+    };
+
+    const handleDeleteUser = async (email: string) => {
+        if (!window.confirm(`Are you sure you want to PERMANENTLY delete user ${email}? This action cannot be undone.`)) return;
+        try {
+            const resp = await fetch(`http://127.0.0.1:8000/admin/users/${email}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                alert("User deleted successfully!");
+                fetchUsers(); // Refresh dashboard
+            } else {
+                const data = await resp.json();
+                alert(data.detail || "Failed to delete user.");
+            }
+        } catch (err) {
+            alert("Error connecting to server.");
+        }
+    };
+
     const loginLogs = logs.filter(l => l.type === 'login');
     const promptLogs = logs.filter(l => l.type === 'story');
 
@@ -96,6 +136,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, onClose }) => {
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
+
                         <button
                             onClick={handleClearLogs}
                             className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold rounded-xl transition-all border border-rose-500/20"
@@ -201,10 +242,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, onClose }) => {
                                         <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                                             <td className="px-8 py-5 font-bold text-slate-900 text-sm">{user.email || user.username}</td>
                                             <td className="px-8 py-5 text-center text-slate-500 text-sm">{user.username}</td>
-                                            <td className="px-8 py-5 text-right">
+                                            <td className="px-8 py-5 text-right flex items-center justify-end gap-3">
                                                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
                                                     {user.role}
                                                 </span>
+                                                {user.role !== 'admin' && (
+                                                    <button 
+                                                        onClick={() => handlePromoteUser(user.email || user.username)}
+                                                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                                                    >
+                                                        Promote to Admin
+                                                    </button>
+                                                )}
+                                                {user.role !== 'admin' && (
+                                                    <button 
+                                                        onClick={() => handleDeleteUser(user.email || user.username)}
+                                                        className="p-1 px-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-colors border border-rose-100 flex items-center justify-center"
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -214,6 +272,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ token, onClose }) => {
                     )}
                 </div>
             </div>
+
+
         </div>
     );
 };

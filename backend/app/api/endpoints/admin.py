@@ -31,13 +31,20 @@ router = APIRouter()
 
 ADMIN_EMAIL = "saketh@storyforge.com"
 
+from app.core.auth import get_password_hash
+
 async def require_admin(current_user: User = Depends(get_current_user)):
-    if current_user.email != ADMIN_EMAIL or current_user.role != "admin":
+    if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have administrative privileges."
         )
     return current_user
+
+class AdminCreate(BaseModel):
+    name: str
+    email: str
+    password: str
 
 class ProductCreate(BaseModel):
     name: str
@@ -106,3 +113,26 @@ async def clear_all_logs(admin: User = Depends(require_admin)):
     await db.activity_logs.delete_many({})
     await db.story_logs.delete_many({})
     return {"message": "All logs cleared successfully"}
+
+@router.post("/users/{email}/promote", response_model=MessageResponse, summary="Promote user to administrator")
+async def promote_user(email: str, admin: User = Depends(require_admin)):
+    db = await get_db()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    await db.users.update_one(
+        {"email": email},
+        {"$set": {"role": "admin"}}
+    )
+    return {"message": f"User {email} has been promoted to Administrator"}
+
+@router.delete("/users/{email}", response_model=MessageResponse, summary="Delete a user profile")
+async def delete_user(email: str, admin: User = Depends(require_admin)):
+    db = await get_db()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    await db.users.delete_one({"email": email})
+    return {"message": f"User {email} has been permanently deleted"}

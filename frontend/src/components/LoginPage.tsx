@@ -196,111 +196,110 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: radial-gradient(circle at top left, #1a1a2e, #16213e, #0f3460);
-          padding: 2rem;
+          background-color: #f8fafc;
+          background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+          background-size: 20px 20px;
+          padding: 1.5rem;
           font-family: 'Inter', sans-serif;
+          overflow: hidden; /* Prevent container scroll if not needed */
         }
 
         .auth-card {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 2rem;
-          padding: 3rem;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 1.25rem;
+          padding: 2rem;
           width: 100%;
-          max-width: 480px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+          max-width: 400px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+          animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
         .auth-header {
           text-align: center;
-          margin-bottom: 2.5rem;
+          margin-bottom: 1.25rem;
         }
 
         .auth-logo {
           display: inline-flex;
           align-items: center;
-          gap: 0.75rem;
-          background: linear-gradient(135deg, #6366f1, #a855f7);
-          padding: 0.5rem 1.25rem;
-          border-radius: 1rem;
-          margin-bottom: 1.5rem;
+          gap: 0.5rem;
+          background: #2563eb;
+          padding: 0.375rem 0.875rem;
+          border-radius: 0.625rem;
+          margin-bottom: 0.75rem;
           color: white;
           font-weight: 800;
-          font-size: 1.25rem;
-          letter-spacing: -0.025em;
+          font-size: 1rem;
         }
 
         .logo-icon {
-          width: 1.5rem;
-          height: 1.5rem;
+          width: 1.125rem;
+          height: 1.125rem;
         }
 
         .auth-header h1 {
-          color: white;
-          font-size: 2.25rem;
+          color: #0f172a;
+          font-size: 1.625rem;
           font-weight: 800;
-          margin-bottom: 0.75rem;
-          letter-spacing: -0.05em;
+          margin-bottom: 0.375rem;
+          letter-spacing: -0.025em;
         }
 
         .auth-header p {
-          color: #94a3b8;
-          font-size: 1rem;
-          line-height: 1.5;
+          color: #64748b;
+          font-size: 0.8125rem;
         }
 
         .auth-error {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.2);
-          color: #ef4444;
-          padding: 1rem;
-          border-radius: 1rem;
-          margin-bottom: 1.5rem;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #b91c1c;
+          padding: 0.625rem 0.875rem;
+          border-radius: 0.625rem;
+          margin-bottom: 1.25rem;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          font-size: 0.875rem;
+          gap: 0.5rem;
+          font-size: 0.75rem;
           font-weight: 500;
         }
 
         .auth-success {
-          background: rgba(16, 185, 129, 0.1);
-          border: 1px solid rgba(16, 185, 129, 0.2);
-          color: #10b981;
-          padding: 1rem;
-          border-radius: 1rem;
-          margin-bottom: 1.5rem;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          color: #15803d;
+          padding: 0.625rem 0.875rem;
+          border-radius: 0.625rem;
+          margin-bottom: 1.25rem;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          font-size: 0.875rem;
+          gap: 0.5rem;
+          font-size: 0.75rem;
           font-weight: 500;
         }
 
         .auth-form {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1rem;
         }
 
         .form-group {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.25rem;
         }
 
         .form-group label {
-          color: #e2e8f0;
-          font-size: 0.875rem;
+          color: #475569;
+          font-size: 0.75rem;
           font-weight: 600;
-          margin-left: 0.25rem;
         }
 
         .input-wrapper {
@@ -311,53 +310,52 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
         .input-icon {
           position: absolute;
-          left: 1.25rem;
-          color: #64748b;
-          width: 1.25rem;
-          height: 1.25rem;
-          transition: color 0.3s ease;
+          left: 0.875rem;
+          color: #94a3b8;
+          width: 1rem;
+          height: 1rem;
+          transition: color 0.15s;
         }
 
         .input-wrapper input {
           width: 100%;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 1rem;
-          padding: 1rem 1.25rem 1rem 3.25rem;
-          color: white;
-          font-size: 1rem;
-          transition: all 0.3s ease;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.625rem;
+          padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+          color: #0f172a;
+          font-size: 0.875rem;
+          transition: all 0.15s;
         }
 
         .input-wrapper input:focus {
           outline: none;
-          background: rgba(255, 255, 255, 0.07);
-          border-color: #6366f1;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+          background: white;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .input-wrapper input:focus + .input-icon {
-          color: #6366f1;
+          color: #2563eb;
         }
 
         .password-requirements {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.02);
-          border-radius: 1rem;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          gap: 0.375rem;
+          padding: 0.625rem;
+          background: #f8fafc;
+          border-radius: 0.625rem;
+          border: 1px solid #e2e8f0;
         }
 
         .requirement {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          font-size: 0.75rem;
+          gap: 0.25rem;
+          font-size: 0.6875rem;
           color: #64748b;
           font-weight: 500;
-          transition: all 0.3s ease;
         }
 
         .requirement.met {
@@ -365,70 +363,61 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         }
 
         .dot {
-          width: 4px;
-          height: 4px;
-          background: #334155;
+          width: 3px;
+          height: 3px;
+          background: #cbd5e1;
           border-radius: 50%;
         }
 
         .auth-submit {
-          margin-top: 1rem;
-          background: linear-gradient(135deg, #6366f1, #a855f7);
+          margin-top: 0.25rem;
+          background: #2563eb;
           color: white;
           border: none;
-          border-radius: 1rem;
-          padding: 1rem;
-          font-size: 1rem;
+          border-radius: 0.625rem;
+          padding: 0.625rem;
+          font-size: 0.875rem;
           font-weight: 700;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.75rem;
+          gap: 0.5rem;
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: all 0.15s;
         }
 
         .auth-submit:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
-          filter: brightness(1.1);
-        }
-
-        .auth-submit:active:not(:disabled) {
-          transform: translateY(0);
+          background: #1d4ed8;
         }
 
         .auth-submit:disabled {
-          opacity: 0.5;
+          opacity: 0.6;
           cursor: not-allowed;
-          filter: grayscale(0.5);
         }
 
         .auth-footer {
-          margin-top: 2rem;
+          margin-top: 1.25rem;
           text-align: center;
-          color: #94a3b8;
-          font-size: 0.875rem;
+          color: #64748b;
+          font-size: 0.75rem;
         }
 
         .auth-footer button {
           background: none;
           border: none;
-          color: #6366f1;
+          color: #2563eb;
           font-weight: 700;
           cursor: pointer;
           margin-left: 0.25rem;
-          transition: color 0.3s ease;
         }
 
         .auth-footer button:hover {
-          color: #818cf8;
           text-decoration: underline;
         }
 
         @media (max-width: 480px) {
           .auth-card {
-            padding: 2rem;
+            padding: 1.25rem;
           }
           .password-requirements {
             grid-template-columns: 1fr;
