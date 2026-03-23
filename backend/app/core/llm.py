@@ -166,12 +166,17 @@ async def generate_structured_story(prompt: str) -> dict:
     
     JSON STRUCTURE:
     {{
-      "narrative": "A MASSIVE, detailed story segment. You MUST write at least 600-800 words. Expand heavily on environmental details, inner monologue, and dialogue. Use at least 8-10 paragraphs.",
-      "title": "A creative 3-5 word title.",
-      "image_prompt": "Pure visual description. NO TEXT, NO LOGOS, NO WRITING. Focus on lighting, atmosphere, and characters.",
+      "narrative": "...", 
+      "title": "...",
+      "image_prompt": "...",
       "sentiment": {{ "joy": 0.5, "sadness": 0.1, "anger": 0.0, "fear": 0.0, "surprise": 0.1 }},
       "validation": {{ "plot_holes": [], "character_inconsistencies": [], "logic_errors": [], "suggestions": [] }}
     }}
+
+    IMPORTANT: 
+    1. The "narrative" field MUST be a full-length story segment (600-800 words).
+    2. Do NOT summarize. Provide immersive prose with dialogue and sensory details.
+    3. Ensure the JSON is valid and correctly escaped.
     """
     
     raw_response = await generate_text(structured_prompt)

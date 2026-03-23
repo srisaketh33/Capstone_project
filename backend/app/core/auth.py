@@ -68,7 +68,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
         
     return User(
-        email=user_dict["username"], 
+        email=user_dict.get("email", user_dict["username"]), 
         name=user_dict.get("name"), 
         role=user_dict.get("role"),
         disabled=user_dict.get("disabled")

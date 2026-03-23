@@ -1,5 +1,4 @@
 import { BookOpen, LogOut, Shield } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
     username?: string;
@@ -8,10 +7,10 @@ interface LayoutProps {
     editor: React.ReactNode;
     rightSidebar: React.ReactNode;
     onLogout: () => void;
+    onOpenAdmin?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ username, role, leftSidebar, editor, rightSidebar, onLogout }) => {
-    const navigate = useNavigate();
+const Layout: React.FC<LayoutProps> = ({ username, role, leftSidebar, editor, rightSidebar, onLogout, onOpenAdmin }) => {
     return (
         <div className="h-screen flex flex-col bg-gray-50 text-gray-900 font-sans">
             <header className="px-6 py-3 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
@@ -19,9 +18,9 @@ const Layout: React.FC<LayoutProps> = ({ username, role, leftSidebar, editor, ri
                     <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">
                         Hi {username || 'Storyteller'}
                     </span>
-                    {role === 'admin' && (
+                    {role?.toLowerCase() === 'admin' && (
                         <button
-                            onClick={() => navigate('/admin')}
+                            onClick={onOpenAdmin}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all border border-indigo-100 uppercase tracking-wider"
                         >
                             <Shield className="w-3.5 h-3.5" />

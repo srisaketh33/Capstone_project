@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from app.models.story import StoryRequest, StoryResponse, ValidationResult
+from pydantic import BaseModel, Field
+from typing import List
 from app.core.memory import memory_manager
 from app.core.sentiment import analyze_emotion
 from app.core.image_prompts import generate_sd_prompt
@@ -8,14 +10,18 @@ from app.core.coherence import check_consistency
 from app.core.llm import generate_text, generate_structured_story
 from app.core.auth import get_current_user
 from app.core.database import get_db
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 import traceback
 import time
 
+class StoryHistoryItem(BaseModel):
+    prompt: str
+    timestamp: datetime
+
 router = APIRouter()
 
-@router.post("/generate", response_model=StoryResponse)
+@router.post("/generate", response_model=StoryResponse, summary="Generate a new story segment")
 async def generate_story_segment(request: StoryRequest, background_tasks: BackgroundTasks, current_user = Depends(get_current_user)):
     """
     Highly optimized unified endpoint.
@@ -115,8 +121,8 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
                      detail="The AI service is currently overwhelmed or out of quota. Please check your API keys or try again in a minute."
                  )
 
-        # Sanitization
-        TEXT_CLEANUP_REGEX = r'(?i)\b(sentiment|joy|sadness|anger|fear|surprise|plot_holes|character_inconsistencies|logic_errors|suggestions|validation|image_prompt)\b[:\s{].*'
+        # Sanitization: Only remove metadata labels if they leaked into the narrative as JSON keys
+        TEXT_CLEANUP_REGEX = r'(?i)("?)(sentiment|plot_holes|character_inconsistencies|logic_errors|suggestions|validation|image_prompt)("?)\s*[:{].*'
         narrative_text = re.sub(TEXT_CLEANUP_REGEX, '', narrative_text, flags=re.DOTALL)
         
         FORBIDDEN_WORDS = ["Perplexity", "Shinchan", "Crayon Shin-chan", "search assistant", "as an AI"]
@@ -162,8 +168,19 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
             await db.story_logs.insert_one({
                 "email": current_user.email,
                 "prompt": request.prompt,
-                "timestamp": datetime.utcnow()
+                "response": narrative_text,
+                "timestamp": datetime.now(timezone.utc)
             })
+            
+            # --- Auto-delete excess: Keep only latest 10 prompts total ---
+            user_logs_cursor = db.story_logs.find().sort("timestamp", -1)
+            user_logs = await user_logs_cursor.to_list(length=100)
+            if len(user_logs) > 10:
+                # Get the IDs to delete (everything after index 9)
+                ids_to_keep = [log["_id"] for log in user_logs[:10]]
+                await db.story_logs.delete_many({
+                    "_id": {"$nin": ids_to_keep}
+                })
         except Exception as log_err:
             print(f"Failed to log story to MongoDB: {log_err}")
 
@@ -181,7 +198,7 @@ async def generate_story_segment(request: StoryRequest, background_tasks: Backgr
         if "429" in err_msg or "Quota" in err_msg:
              raise HTTPException(status_code=429, detail=f"Daily AI Quota Exceeded. {err_msg}")
         raise HTTPException(status_code=500, detail=f"Generation Error: {err_msg}")
-@router.get("/history")
+@router.get("/history", response_model=List[StoryHistoryItem], summary="Get personal story history")
 async def get_user_story_history(current_user = Depends(get_current_user)):
     """
     Retrieves the logged-in user's own story history.
